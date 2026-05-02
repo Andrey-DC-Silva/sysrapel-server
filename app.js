@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import 'dotenv/server';
+import 'dotenv/config';
 
 import Rotas_aut from './routes/rotas_aut.js';
 import Rotas_usuarios from './routes/rotas_usuarios.js';
@@ -13,21 +13,13 @@ import Rotas_pessoas from './routes/rotas_pessoas.js';
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL
+  origin: process.env.FRONTEND_URL || "*"
 }));
 
 app.use(express.json());
 
-app.use((req, res, next) => {
-  console.log(req.method, req.url);
-  next();
-});
-
 app.get('/', (req, res) => {
-  res.json({
-    message: 'backend rodando',
-    status: 'ok'
-  });
+  res.json({ message: 'backend rodando', status: 'ok' });
 });
 
 app.use('/auth', Rotas_aut);
