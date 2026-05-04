@@ -24,7 +24,6 @@ router.post('/', async (req, res) => {
      VALUES ($1,$2,$3) RETURNING *`,
     [nome, cpf, email]
   );
-
   res.json(result.rows[0]);
 });
 
@@ -37,13 +36,12 @@ router.put('/:id', async (req, res) => {
      WHERE id=$4 RETURNING *`,
     [nome, cpf, email, req.params.id]
   );
-
   res.json(result.rows[0]);
 });
 
 router.delete('/:id', async (req, res) => {
   await pool.query('DELETE FROM pessoa WHERE id=$1', [req.params.id]);
-  res.json({ message: 'Removido' });
+  res.json({ message: 'Pessoa removida com sucesso' });
 });
 
 export default router;

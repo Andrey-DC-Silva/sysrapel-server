@@ -64,7 +64,7 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   await pool.query('DELETE FROM usuario WHERE id=$1', [req.params.id]);
-  res.json({ message: 'Removido' });
+  res.json({ message: 'Usuario removido com sucesso' });
 });
 
 export default router;

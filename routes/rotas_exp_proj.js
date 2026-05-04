@@ -12,9 +12,8 @@ router.get('/projeto/:projetoId', async (req, res) => {
     FROM experimento e
     JOIN projeto_experimento pe
       ON pe.experimento_id = e.id
-    WHERE pe.projeto_id = $1
-  `, [req.params.projetoId]);
-
+    WHERE pe.projeto_id = $1`,
+    [req.params.projetoId]);
   res.json(result.rows);
 });
 
@@ -25,10 +24,8 @@ router.get('/disponiveis/:projetoId', async (req, res) => {
     WHERE e.id NOT IN (
       SELECT experimento_id
       FROM projeto_experimento
-      WHERE projeto_id = $1
-    )
-  `, [req.params.projetoId]);
-
+      WHERE projeto_id = $1)`,
+    [req.params.projetoId]);
   res.json(result.rows);
 });
 
@@ -37,9 +34,8 @@ router.post('/', async (req, res) => {
 
   await pool.query(`
     INSERT INTO projeto_experimento (projeto_id, experimento_id)
-    VALUES ($1,$2)
-  `, [projeto_id, experimento_id]);
-
+    VALUES ($1,$2)`,
+    [projeto_id, experimento_id]);
   res.json({ message: 'Vinculado' });
 });
 
@@ -48,10 +44,9 @@ router.delete('/:projetoId/:experimentoId', async (req, res) => {
 
   await pool.query(`
     DELETE FROM projeto_experimento
-    WHERE projeto_id=$1 AND experimento_id=$2
-  `, [projetoId, experimentoId]);
-
-  res.json({ message: 'Desvinculado' });
+    WHERE projeto_id=$1 AND experimento_id=$2`,
+    [projetoId, experimentoId]);
+  res.json({ message: 'Experimento desvinculado' });
 });
 
 export default router;

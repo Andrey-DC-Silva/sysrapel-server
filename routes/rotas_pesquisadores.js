@@ -4,46 +4,26 @@ import { pool } from '../src/config/banco.js';
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  try {
-    const result = await pool.query(`
+  const result = await pool.query(`
       SELECT 
-        pes.id,
-        pes.pessoa_id,
-        p.nome,
-        p.email,
-        pes.area_atuacao,
-        pes.ativo
+        pes.id, pes.pessoa_id, p.nome, p.email, pes.area_atuacao, pes.ativo
       FROM pesquisador pes
       JOIN pessoa p ON p.id = pes.pessoa_id
-      ORDER BY p.nome
-    `);
-
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      ORDER BY p.nome`
+  );
+  res.json(result.rows);
 });
 
 router.get('/', async (req, res) => {
-  try {
-    const result = await pool.query(`
+  const result = await pool.query(`
       SELECT 
-        pes.id,
-        pes.pessoa_id,
-        p.nome,
-        p.email,
-        pes.area_atuacao,
-        pes.ativo
+        pes.id, pes.pessoa_id, p.nome, p.email, pes.area_atuacao, pes.ativo
       FROM pesquisador pes
       JOIN pessoa p ON p.id = pes.pessoa_id
       WHERE pes.ativo = true
-      ORDER BY p.nome
-    `);
-
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      ORDER BY p.nome`
+  );
+  res.json(result.rows);
 });
 
 router.post('/', async (req, res) => {
@@ -76,7 +56,6 @@ router.post('/', async (req, res) => {
 
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -117,23 +96,17 @@ router.put('/:id', async (req, res) => {
 
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
 });
 
 router.delete('/:id', async (req, res) => {
-  try {
-    await pool.query(
-      `UPDATE pesquisador SET ativo = false WHERE id = $1`,
-      [req.params.id]
-    );
-
-    res.json({ message: 'Pesquisador desativado com sucesso' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  await pool.query(
+    `DELETE FROM pesquisador WHERE id = $1`,
+    [req.params.id]
+  );
+  res.json({ message: 'Pesquisador deletado com sucesso' });
 });
 
 export default router;
