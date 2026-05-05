@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
   res.json(result.rows);
 });
 
-router.get('/', async (req, res) => {
+router.get('/ativos', async (req, res) => {
   const result = await pool.query(`
       SELECT 
         pes.id, pes.pessoa_id, p.nome, p.email, pes.area_atuacao, pes.ativo
@@ -102,11 +102,43 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  await pool.query(
-    `DELETE FROM pesquisador WHERE id = $1`,
-    [req.params.id]
-  );
-  res.json({ message: 'Pesquisador deletado com sucesso' });
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const pes = await client.query(
+      `SELECT pessoa_id FROM pesquisador WHERE id = $1`,
+      [req.params.id]
+    );
+
+    if (pes.rows.length === 0) {
+      return res.status(404).json({ error: 'Pesquisador não encontrado' });
+    }
+
+    const pessoaId = pes.rows[0].pessoa_id;
+
+    await client.query(
+      `DELETE FROM pesquisador WHERE id = $1`,
+      [req.params.id]
+    );
+
+    await client.query(
+      `DELETE FROM pessoa WHERE id = $1`,
+      [pessoaId]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({ message: 'Pesquisador e pessoa removidos com sucesso' });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao deletar' });
+  } finally {
+    client.release();
+  }
 });
 
 export default router;
