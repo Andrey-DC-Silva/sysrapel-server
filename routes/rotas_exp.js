@@ -1,7 +1,10 @@
 import express from 'express';
 import { pool } from '../src/config/banco.js';
+import { Autenticacao } from '../src/authentication/autenticacao.js';
 
 const router = express.Router();
+
+router.use(Autenticacao);
 
 router.get('/', async (req, res) => {
   const result = await pool.query('SELECT * FROM experimento');

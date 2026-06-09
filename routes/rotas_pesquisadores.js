@@ -1,23 +1,17 @@
 import express from 'express';
 import { pool } from '../src/config/banco.js';
+import {
+  Autenticacao,
+  AutenticarAdmin
+} from '../src/authentication/autenticacao.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-  const result = await pool.query(`
-      SELECT 
-        pes.id, pes.pessoa_id, p.nome, p.email, pes.area_atuacao, pes.ativo
-      FROM pesquisador pes
-      JOIN pessoa p ON p.id = pes.pessoa_id
-      ORDER BY p.nome`
-  );
-  res.json(result.rows);
-});
+router.use(Autenticacao);
 
 router.get('/ativos', async (req, res) => {
   const result = await pool.query(`
-      SELECT 
-        pes.id, pes.pessoa_id, p.nome, p.email, pes.area_atuacao, pes.ativo
+      SELECT pes.id, p.nome
       FROM pesquisador pes
       JOIN pessoa p ON p.id = pes.pessoa_id
       WHERE pes.ativo = true
@@ -26,7 +20,18 @@ router.get('/ativos', async (req, res) => {
   res.json(result.rows);
 });
 
-router.post('/', async (req, res) => {
+router.get('/', AutenticarAdmin, async (req, res) => {
+  const result = await pool.query(`
+      SELECT
+        pes.id, pes.pessoa_id, p.nome, p.email, pes.area_atuacao, pes.ativo
+      FROM pesquisador pes
+      JOIN pessoa p ON p.id = pes.pessoa_id
+      ORDER BY p.nome`
+  );
+  res.json(result.rows);
+});
+
+router.post('/', AutenticarAdmin, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -53,15 +58,22 @@ router.post('/', async (req, res) => {
     await client.query('COMMIT');
 
     res.status(201).json(pesquisador.rows[0]);
-
   } catch (err) {
     await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
 });
 
 router.put('/:id', async (req, res) => {
+  const isAdmin = req.user.role === 'ADMIN';
+  const isOwn = String(req.user.pesquisador_id) === String(req.params.id);
+
+  if (!isAdmin && !isOwn) {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+
   const client = await pool.connect();
 
   try {
@@ -74,34 +86,41 @@ router.put('/:id', async (req, res) => {
       [req.params.id]
     );
 
+    if (pes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Pesquisador não encontrado' });
+    }
+
     const pessoaId = pes.rows[0].pessoa_id;
 
-    await client.query(
-      `UPDATE pessoa SET nome = $1, email = $2 WHERE id = $3`,
-      [nome, email, pessoaId]
-    );
+    if (nome || email) {
+      await client.query(
+        `UPDATE pessoa SET nome = COALESCE($1, nome), email = COALESCE($2, email) WHERE id = $3`,
+        [nome || null, email || null, pessoaId]
+      );
+    }
 
     const result = await client.query(
       `UPDATE pesquisador
-       SET area_atuacao = $1,
-           ativo = COALESCE($2, ativo)
+       SET area_atuacao = COALESCE($1, area_atuacao),
+           ativo = CASE WHEN $2::boolean IS NOT NULL THEN $2 ELSE ativo END
        WHERE id = $3
        RETURNING *`,
-      [area_atuacao, ativo, req.params.id]
+      [area_atuacao ?? null, isAdmin ? ativo ?? null : null, req.params.id]
     );
 
     await client.query('COMMIT');
 
     res.json(result.rows[0]);
-
   } catch (err) {
     await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
   } finally {
     client.release();
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', AutenticarAdmin, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -113,6 +132,7 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (pes.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Pesquisador não encontrado' });
     }
 
@@ -131,7 +151,6 @@ router.delete('/:id', async (req, res) => {
     await client.query('COMMIT');
 
     res.json({ message: 'Pesquisador e pessoa removidos com sucesso' });
-
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);

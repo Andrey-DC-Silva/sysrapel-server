@@ -1,12 +1,15 @@
 import express from 'express';
 import { pool } from '../src/config/banco.js';
+import { Autenticacao } from '../src/authentication/autenticacao.js';
 
 const router = express.Router();
+
+router.use(Autenticacao);
 
 router.get('/', async (req, res) => {
   const result = await pool.query(`
     SELECT p.*,
-      pes.id AS pesquisador_id, pes.pessoa_id, 
+      pes.id AS pesquisador_id, pes.pessoa_id,
       pe.nome AS pesquisador_nome, pe.email AS pesquisador_email
     FROM projeto p
     LEFT JOIN pesquisador pes ON pes.id = p.pesquisador_responsavel_id
@@ -28,7 +31,7 @@ router.post('/', async (req, res) => {
     status, pesquisador_responsavel_id } = req.body;
 
   const result = await pool.query(`
-    INSERT INTO projeto 
+    INSERT INTO projeto
       (nome, descricao, data_inicio, data_fim, status, pesquisador_responsavel_id)
     VALUES ($1,$2,$3,$4,$5,$6)
     RETURNING *`,
