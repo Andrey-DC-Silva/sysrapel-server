@@ -35,7 +35,7 @@ router.get('/', AutenticarAdmin, async (req, res) => {
   }
 });
 
-router.get('/me', async (req, res) => {
+router.get('/perfil', async (req, res) => {
   try {
     const result = await pool.query(
       `${PERFIL_QUERY} WHERE u.id = $1`,
@@ -69,7 +69,7 @@ router.get('/:id', autorizarProprioOuAdmin(), async (req, res) => {
   }
 });
 
-router.put('/me', async (req, res) => {
+router.put('/perfil', async (req, res) => {
   const { nome, email, area_atuacao, senha } = req.body;
 
   const client = await pool.connect();
