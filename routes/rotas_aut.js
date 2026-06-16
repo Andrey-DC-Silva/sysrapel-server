@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/cadastro', async (req, res) => {
   const { nome, cpf, email, senha, area_atuacao } = req.body;
 
   if (!nome || !cpf || !email || !senha) {
